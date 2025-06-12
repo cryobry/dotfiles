@@ -1,0 +1,38 @@
+HashKnownHosts yes
+AddressFamily inet
+
+Host *
+  StrictHostKeyChecking no
+
+Host uv.asc.edu
+    User uabbcr
+    ProxyJump roessler@138.26.17.151
+
+Host router
+    Hostname router.lan
+    User root
+    ServerAliveCountMax 10
+    ServerAliveInterval 120
+
+Host home-router
+    Hostname home-router
+    User root
+
+Host ax6000
+    Hostname ax6000.lan
+    User root
+
+Host bryanroessler.com
+    Hostname bryanroessler.com
+    #PubkeyAcceptedKeyTypes ssh-rsa
+
+Host htpc
+    Hostname htpc.lan
+
+Host racknerd
+    Hostname 23.94.201.46
+
+Host hartmanlab
+    Hostname hartmanlab.genetics.uab.edu
+    User roessler
+
