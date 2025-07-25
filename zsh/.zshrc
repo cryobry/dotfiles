@@ -1,5 +1,5 @@
 # Shell options
-setopt autocd correct globdots extendedglob nomatch notify \
+setopt autocd menucomplete correct globdots extendedglob nomatch notify \
   share_history inc_append_history hist_expire_dups_first hist_reduce_blanks \
   hist_find_no_dups hist_verify extended_history auto_pushd pushd_ignore_dups \
   prompt_subst
@@ -7,9 +7,9 @@ unsetopt beep
 bindkey -e
 
 # Load secrets
-if [[ -f .env ]]; then
+if [[ -f $HOME/.env ]]; then
   set -a # automatically export all variables
-  source .env
+  source "$HOME/.env"
   set +a
 fi
 
@@ -130,3 +130,6 @@ podman-update-images() {
   podman images --format '{{.Repository}}' | grep -v '^<none>$' | xargs -r -L1 podman pull
 }
 buildah-prune() { buildah rm --all; }
+
+export EDITOR="code --wait"
+
