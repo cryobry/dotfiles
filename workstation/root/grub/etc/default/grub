@@ -1,0 +1,9 @@
+GRUB_TIMEOUT=10
+GRUB_TIMEOUT_STYLE=menu
+GRUB_DISTRIBUTOR="$(sed 's, release .*$,,g' /etc/system-release)"
+GRUB_DEFAULT=saved
+GRUB_DISABLE_SUBMENU=true
+GRUB_TERMINAL_OUTPUT=console
+GRUB_CMDLINE_LINUX="rd.luks.uuid=luks-1d031edb-112e-4447-aa79-f93adb28739d rhgb quiet acpi_enforce_resources=lax"
+GRUB_DISABLE_RECOVERY=true
+GRUB_ENABLE_BLSCFG=true
