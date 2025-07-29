@@ -40,8 +40,8 @@ sudo stow -d common/root -R --adopt -t / $(ls common/root)
 sudo stow -d $HOSTNAME/root -R --adopt -t / $(ls "$HOSTNAME/root")
 ```
 
-* Interactive deploy using shell script
+* Interactive deploy using helper script
 
 ```bash
-./deploy [HOSTNAME]
+./deploy [HOSTNAME (Optional)]
 ```
