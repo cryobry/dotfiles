@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+# Interactively deploy GNU Stow packages
+# Takes one optional argument, the HOSTNAME
+set -e
+
+HOSTNAME=${1:-$HOSTNAME}
+
+# Map of source packageS and destinatioNS
+declare -A STOW_MAP=(
+  ["common/home"]="$HOME"
+  ["$HOSTNAME/home"]="$HOME"
+  ["common/root"]="/"
+  ["$HOSTNAME/root"]="/"
+)
+
+for stowdir in "${!STOW_MAP[@]}"; do
+  target="${STOW_MAP[$stowdir]}"
+  [[ -d "$stowdir" ]] || return
+  SUDO=""
+  [[ "$target" == "/" ]] && SUDO="sudo"
+  echo "Deploying packages from $stowdir to $target..."
+  for pkg in "$stowdir"/*; do
+    [ -e "$pkg" ] || continue
+    if ! $SUDO stow -d "$stowdir" -R -t "$target" "$pkg"; then
+      echo "Conflicts detected for package '$pkg':"
+      read -rp "Use --adopt (move existing files) [a], backup [b], skip [s], or overwrite [o]? Default: skip" choice
+      case "$choice" in
+        a|A) $SUDO stow -d "$stowdir" -R --adopt -t "$target" "$pkg"; continue ;;
+        b|B) 
+          find "$pkg" -type f,l | while read -r file; do
+            relpath="${file#"$pkg"/}"
+            dest="$target/$relpath"
+            [[ -e "$dest" ]] && $SUDO mv -a "$dest" "$dest.bk"
+          done
+          ;;
+        o|O)
+          find "$pkg" -type f,l | while read -r file; do
+            relpath="${file#"$pkg"/}"
+            dest="$target/$relpath"
+            [[ -e "$dest" ]] && $SUDO rm -f -- "$dest"
+          done
+          ;;
+        s|S|*) echo "Skipping $pkg"; continue ;;
+      esac
+      $SUDO stow -d "$stowdir" -R -t "$target" "$pkg"
+    fi
+  done
+done
