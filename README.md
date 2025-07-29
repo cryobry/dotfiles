@@ -30,7 +30,7 @@ stow -d workstation/home -R --adopt -t "$HOME" btrbk
 sudo stow -d workstation/root -R --adopt -t / grub
 ```
 
-* Full deploy
+* Full manual deploy
 
 ```bash
 HOSTNAME=workstation # usually the default
@@ -38,4 +38,10 @@ stow -d common/home -R --adopt -t "$HOME" $(ls common/home)
 stow -d "$HOSTNAME/home" -R --adopt -t "$HOME" $(ls "$HOSTNAME/home")
 sudo stow -d common/root -R --adopt -t / $(ls common/root)
 sudo stow -d $HOSTNAME/root -R --adopt -t / $(ls "$HOSTNAME/root")
+```
+
+* Interactive deploy using shell script
+
+```bash
+./deploy [HOSTNAME]
 ```
