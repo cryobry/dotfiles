@@ -20,7 +20,7 @@ for stowdir in "${!STOW_MAP[@]}"; do
   [[ "$target" == "/" ]] && SUDO="sudo"
   echo "Deploying packages from $stowdir to $target..."
   for pkg in "$stowdir"/*; do
-    [ -e "$pkg" ] || continue
+    pkg=$(basename "$pkg")
     if ! $SUDO stow -d "$stowdir" -R -t "$target" "$pkg"; then
       echo "Conflicts detected for package '$pkg':"
       read -rp "Use --adopt (move existing files) [a], backup [b], skip [s], or overwrite [o]? Default: skip" choice
