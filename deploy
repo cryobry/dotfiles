@@ -23,7 +23,7 @@ for stowdir in "${!STOW_MAP[@]}"; do
     pkg=$(basename "$pkg")
     if ! $SUDO stow -d "$stowdir" -R -t "$target" "$pkg"; then
       echo "Conflicts detected for package '$pkg':"
-      read -rp "Use --adopt (move existing files) [a], backup [b], skip [s], or overwrite [o]? Default: skip" choice
+      read -rp "Adopt [a], backup [b], overwrite [o], or skip [s] (default)?" choice
       case "$choice" in
         a|A) $SUDO stow -d "$stowdir" -R --adopt -t "$target" "$pkg"; continue ;;
         b|B) 
