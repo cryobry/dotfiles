@@ -42,6 +42,7 @@ else
 fi
 
 # Assign colors based on the hostname
+# https://www.ditig.com/256-colors-cheat-sheet
 if [[ -v TOOLBOX_PATH ]]; then
   host_color=magenta
 elif [[ -v DISTROBOX_ENTER_PATH ]]; then
@@ -59,6 +60,7 @@ else
     ax6000)       host_color=87 ;;
     home-router)  host_color=218 ;;
     vm-fedora*)   host_color=57 ;;
+    vm-alma*)     host_color=214 ;;
     *)            host_color=white ;;
   esac
 fi
