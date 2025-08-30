@@ -5,12 +5,15 @@
 # Determine the hostname to use for packages dir
 HOSTNAME=${1:-${HOSTNAME:-$(hostname)}}
 
+# Get script dir for relative stow paths
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+
 # Map of source packages and destinations
 declare -A STOW_MAP=(
-  ["common/home"]="$HOME"
-  ["common/root"]="/"
-  ["$HOSTNAME/home"]="$HOME"
-  ["$HOSTNAME/root"]="/"
+  ["$SCRIPT_DIR/common/home"]="$HOME"
+  ["$SCRIPT_DIR/common/root"]="/"
+  ["$SCRIPT_DIR/$HOSTNAME/home"]="$HOME"
+  ["$SCRIPT_DIR/$HOSTNAME/root"]="/"
 )
 
 for stowdir in "${!STOW_MAP[@]}"; do
