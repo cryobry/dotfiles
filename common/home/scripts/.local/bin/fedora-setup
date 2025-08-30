@@ -1,0 +1,89 @@
+#!/usr/bin/env bash
+# Initial setup for Fedora Workstation
+
+# Make interactive
+ask_ok() {
+  ((YES)) && return
+  local r
+  read -r -p "$* [y/N]: " r
+  r=${r,,}
+  [[ "$r" =~ ^(yes|y)$ ]]
+}
+
+# Firefox about:config
+# mousewheel.acceleration.factor 20
+# mousewheel.acceleration.start 2
+# gfx.webrender.all true
+# browser.tabs.insertAfterCurrent true
+# browser.ctrlTab.sortByRecentlyUsed = true
+
+if ask_ok "Add external repos?"; then
+  sudo dnf config-manager --add-repo https://download.opensuse.org/repositories/shells:zsh-users:zsh-completions/Fedora_Rawhide/shells:zsh-users:zsh-completions.repo
+  sudo rpm --import https://packages.microsoft.com/keys/microsoft.asc
+  sudo sh -c 'echo -e "[code]\nname=Visual Studio Code\nbaseurl=https://packages.microsoft.com/yumrepos/vscode\nenabled=1\ngpgcheck=1\ngpgkey=https://packages.microsoft.com/keys/microsoft.asc" > /etc/yum.repos.d/vscode.repo'
+fi
+
+if ask_ok "Add/remove packages?"; then
+  sudo dnf remove -y abrt rhythmbox gnome-software spice-vdagent open-vm-tools-desktop orca anaconda-live gnome-initial-setup
+  sudo dnf install -y \
+    rpmfusion-free-release \
+    zsh zsh-completions ShellCheck \
+    btrbk btrfsmaintenance \
+    vim htop remmina calibre pinta toolbox code gnome-tweaks \
+    wl-clipboard syncthing profile-sync-daemon \
+    python3-virtualenv python3-virtualenvwrapper nautilus-python gettext \
+    setroubleshoot cargo flatpak snap tailscale
+  cargo install aichat
+fi
+
+if ask_ok "Use zsh as default shell?"; then
+  chsh -s "$(which zsh)"
+fi
+
+if ask_ok "Enable profile-sync-daemon for the user?"; then
+  systemctl --user enable --now psd
+fi
+
+if ask_ok "Enable automatic system updates?"; then
+  sudo systemctl enable --now dnf-automatic.timer
+fi
+
+if ask_ok "Make btrfs subvolumes?"; then
+  sudo btrfs sub create "$HOME/media/music"
+  sudo btrfs sub create "$HOME/media/tv"
+  sudo btrfs sub create "$HOME/media/pictures"
+  sudo btrfs sub create "$HOME/media/ebooks"
+  sudo btrfs sub create "$HOME/media/movies"
+  sudo btrfs sub create "$HOME/media/podcasts"
+fi
+
+if ask_ok "Allow some commands to invoke sudo without a password?"; then
+  echo "$USER ALL=(ALL) NOPASSWD: /usr/bin/psd-overlay-helper, /usr/sbin/btrfs, /usr/bin/journalctl, /usr/bin/dnf, /usr/bin/fwupdmgr, /usr/bin/dmesg" | sudo tee -a /etc/sudoers > /dev/null
+fi
+
+if ask_ok "Use full urlbar path in nautilus?"; then
+  gsettings set org.gnome.nautilus.preferences always-use-location-entry true
+fi
+
+if ask_ok "Increase scrollback limit for gnome-console?"; then
+  kgx --set-scrollback 100000000
+fi
+
+if ask_ok "Increase max_user_watches for VSCode?"; then
+  echo "fs.inotify.max_user_watches=524288" | sudo tee /etc/sysctl.d/local.conf > /dev/null
+  sudo systemctl restart systemd-sysctl.service
+fi
+
+if ask_ok "Deploy personal repos?"; then
+  mkdir -p "$HOME/.local/bin"
+  git -C "$HOME/.local/bin" clone https://git.bryanroessler.com/bryan/installJRMC.git -b dev
+  git -C "$HOME/.local/bin" clone https://git.bryanroessler.com/bryan/openwrtbuilder.git -b dev
+  git -C "$HOME/.local/bin" clone https://git.bryanroessler.com/bryan/deployer.git -b dev
+  git -C "$HOME/.local/bin" clone https://git.bryanroessler.com/bryan/dotfiles.git -b dev
+fi
+
+if ask_ok "Run semi-interactive dotfiles deployment?"; then
+  "$HOME/.local/bin/dotfiles/deploy"
+fi
+
+exit 0
