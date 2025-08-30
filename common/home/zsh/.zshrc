@@ -84,7 +84,8 @@ typeset -U path PATH
 path=(
   $HOME/bin
   $HOME/.local/bin
-  $HOME/documents/develop/scripts/shell
+  $HOME/documents/develop/scripts/shell/.local/bin
+  $HOME/.cargo/bin
   $path
 )
 export PATH
@@ -127,7 +128,7 @@ alias gedit='gnome-text-editor'
 alias xclip='xclip -selection c'
 alias pdoman='podman'
 alias git-list='git ls-tree -r HEAD --name-only'
-alias chatgpt="chatgpt --model gpt-4o --api-key $OPENAI_API_KEY"
+
 podman-update-images() {
   podman images --format '{{.Repository}}' | grep -v '^<none>$' | xargs -r -L1 podman pull
 }
