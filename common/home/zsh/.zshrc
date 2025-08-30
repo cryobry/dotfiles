@@ -128,6 +128,7 @@ alias gedit='gnome-text-editor'
 alias xclip='xclip -selection c'
 alias pdoman='podman'
 alias git-list='git ls-tree -r HEAD --name-only'
+alias chatgpt='aichat'
 
 podman-update-images() {
   podman images --format '{{.Repository}}' | grep -v '^<none>$' | xargs -r -L1 podman pull
