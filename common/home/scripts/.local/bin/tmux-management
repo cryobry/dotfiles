@@ -1,0 +1,80 @@
+#!/usr/bin/env bash
+# Open a tiled tmux window with one pane per host each in its own tmux session
+# The local host is always the last (active) pane.
+# Copyright 2021-2025 Bryan C. Roessler
+# Licensed under the Apache License, Version 2.0
+
+set -euo pipefail
+
+# Configuration (override with env vars if desired)
+HOSTS=(workstation laptop) # hosts in pane order
+REMOTE_SESSION=${REMOTE_SESSION:-main} # tmux session on remotes
+SYNCHRONIZE=${SYNCHRONIZE:-1} # 1 = broadcast keystrokes
+INCLUDE_LOCAL=${INCLUDE_LOCAL:-1} # 0 = skip local host
+LOCAL_SHELL_ONLY=${LOCAL_SHELL_ONLY:-0} # 1 = plain shell locally
+DEBUG=${DEBUG:-0}
+
+debug() { if (( DEBUG )); then echo "Debug: $*"; fi; }
+
+# Returns 0 if $2 is found in nameref array $1
+array_contains() {
+  local -n arr=$1
+  local needle=$2
+  for element in "${arr[@]}"; do
+    [[ "$element" == "$needle" ]] && return 0
+  done
+  return 1
+}
+
+LOCAL=$(hostname -s)
+
+# Build TARGETS list so that LOCAL is always last
+TARGETS=()
+for h in "${HOSTS[@]}"; do
+  [[ $h != "$LOCAL" ]] && TARGETS+=("$h")
+done
+if (( INCLUDE_LOCAL )); then
+  TARGETS+=("$LOCAL")
+fi
+
+(( ${#TARGETS[@]} )) || { echo "No hosts to connect to."; exit 1; }
+
+SESSION=$(IFS=-; echo "${TARGETS[*]}")
+debug "Session : $SESSION"
+debug "Targets : ${TARGETS[*]}"
+
+# Re‑attach if session already exists
+if tmux has-session -t "$SESSION" 2>/dev/null; then
+  exec tmux attach -t "$SESSION"
+fi
+
+# Builds the command that will run inside a pane
+open_cmd() {
+  local tgt=$1
+  if [[ $tgt == "$LOCAL" ]]; then
+    if (( LOCAL_SHELL_ONLY )); then
+      printf '%q -l' "${SHELL:-bash}"
+    else
+      printf 'tmux -L %q new -A -s %q' "${SESSION}_local" "$REMOTE_SESSION"
+    fi
+  else
+    printf 'ssh -t %q tmux new -A -s %q' "$tgt" "$REMOTE_SESSION"
+  fi
+}
+
+# Create the first pane
+tmux new-session -d -s "$SESSION" -n "$SESSION" "$(open_cmd "${TARGETS[0]}")"
+
+# Create remaining panes
+for tgt in "${TARGETS[@]:1}"; do
+  tmux split-window -t "$SESSION:0" -h "$(open_cmd "$tgt")"
+done
+
+tmux select-layout -t "$SESSION:0" tiled
+((SYNCHRONIZE)) && tmux setw -t "$SESSION:0" synchronize-panes on
+
+# Activate the last pane (local host)
+local_index=$(( ${#TARGETS[@]} - 1 ))
+tmux select-pane -t "$SESSION:0.$local_index"
+
+exec tmux attach -t "$SESSION"

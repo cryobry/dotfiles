@@ -1,48 +1,58 @@
 #!/usr/bin/env bash
 # Interactively deploy GNU Stow packages
 # Takes one optional argument, the HOSTNAME
-set -e
 
-HOSTNAME=${1:-$HOSTNAME}
+# Determine the hostname to use for packages dir
+HOSTNAME=${1:-${HOSTNAME:-$(hostname)}}
 
-# Map of source packageS and destinatioNS
+# Map of source packages and destinations
 declare -A STOW_MAP=(
   ["common/home"]="$HOME"
-  ["$HOSTNAME/home"]="$HOME"
   ["common/root"]="/"
+  ["$HOSTNAME/home"]="$HOME"
   ["$HOSTNAME/root"]="/"
 )
 
 for stowdir in "${!STOW_MAP[@]}"; do
   target="${STOW_MAP[$stowdir]}"
-  [[ -d "$stowdir" ]] || return
+  [[ -d "$stowdir" ]] || continue
   SUDO=""
   [[ "$target" == "/" ]] && SUDO="sudo"
-  echo "Deploying packages from $stowdir to $target..."
+  echo "Deploying packages from $stowdir to $target"
+  
   for pkg in "$stowdir"/*; do
-    pkg=$(basename "$pkg")
-    if ! $SUDO stow -d "$stowdir" -R -t "$target" "$pkg"; then
-      echo "Conflicts detected for package '$pkg':"
-      read -rp "Adopt [a], backup [b], overwrite [o], or skip [s] (default: skip): " choice
-      case "$choice" in
-        a|A) $SUDO stow -d "$stowdir" -R --adopt -t "$target" "$pkg"; continue ;;
-        b|B) 
-          find "$pkg" -type f,l | while read -r file; do
+    [[ -d "$pkg" ]] || continue
+    pkg_name=$(basename "$pkg")
+    echo -e "$pkg_name\n${pkg_name//?/-}"
+    tree -a "$pkg"
+    
+    if ! $SUDO stow -d "$stowdir" -R -t "$target" "$pkg_name"; then
+      echo "Conflicts detected for package '$pkg_name':"
+      read -rp "Adopt [a], backup [b], overwrite [o], or skip [s|<Enter>] (default: skip): " choice
+      case "${choice,,}" in
+        a) $SUDO stow -d "$stowdir" -R --adopt -t "$target" "$pkg_name"; continue ;;
+        b) 
+          backup_dir="$target/.stow-backups/$(date +%Y%m%d_%H%M%S)"
+          $SUDO mkdir -p "$backup_dir"
+          while IFS= read -r -d '' file; do
             relpath="${file#"$pkg"/}"
             dest="$target/$relpath"
-            [[ -e "$dest" ]] && $SUDO mv -a "$dest" "$dest.bk"
-          done
+            if [[ -e "$dest" ]]; then
+              $SUDO mkdir -p "$backup_dir/$(dirname "$relpath")"
+              $SUDO mv "$dest" "$backup_dir/$relpath"
+            fi
+          done < <(find "$pkg" -type f -print0)
           ;;
-        o|O)
-          find "$pkg" -type f,l | while read -r file; do
+        o)
+          while IFS= read -r -d '' file; do
             relpath="${file#"$pkg"/}"
             dest="$target/$relpath"
-            [[ -e "$dest" ]] && $SUDO rm -f -- "$dest"
-          done
+            [[ -e "$dest" ]] && $SUDO rm -f "$dest"
+          done < <(find "$pkg" -type f -print0)
           ;;
-        s|S|*) echo "Skipping $pkg"; continue ;;
+        *) echo "Skipping $pkg_name"; continue ;;
       esac
-      $SUDO stow -d "$stowdir" -R -t "$target" "$pkg"
+      $SUDO stow -d "$stowdir" -R -t "$target" "$pkg_name"
     fi
   done
 done

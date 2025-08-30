@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+# Remove directories below a specified size (in KB)
+# Usage: remove-small-dirs DIRECTORY [SIZE_THRESHOLD]
+# Default SIZE_THRESHOLD is 1000 KB
+
+set -euo pipefail
+
+if [[ $# -lt 1 ]]; then
+    echo "You must provide a directory." >&2
+    exit 1
+fi
+
+dir="$1"
+SIZE="${2:-1000}"
+
+if [[ ! -d "$dir" ]]; then
+    echo "Directory does not exist: $dir" >&2
+    exit 1
+fi
+
+# Find directories with size less or equal to SIZE
+small_dirs=$(find "$dir" -mindepth 1 -type d -exec du -ks {} + | awk -v size="$SIZE" '$1 <= size {print $2}')
+
+if [[ -z "$small_dirs" ]]; then
+    echo "No directories with size <= $SIZE KB found in $dir."
+    exit 0
+fi
+
+echo "Directories to be removed:"
+echo "$small_dirs"
+
+read -r -p "Is this OK? [y/N] " response
+response="${response,,}"  # Convert to lowercase
+
+if [[ ! "$response" =~ ^(yes|y)$ ]]; then
+    echo "Exiting, no changes were made."
+    exit 0
+fi
+
+echo "$small_dirs" | xargs -d'\n' rm -rf
+echo "Removed the following directories:"
+echo "$small_dirs"

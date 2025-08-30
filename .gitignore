@@ -1,2 +1,4 @@
 .env
 .ssh
+.old/
+powershell/activate-windows.ps1

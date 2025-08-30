@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# Unzip most filetypes automatically
+
+extract() {
+  local a
+  [[ $# -eq 0 ]] && { echo "usage: extract <archive...>" >&2; return 1; }
+  for a in "$@"; do
+    [[ ! -f $a ]] && { echo "$a: not a file" >&2; continue; }
+    case $a in
+      *.tar.*|*.tgz|*.tbz2) tar xvf "$a" --auto-compress ;;
+      *.tar)                tar xvf "$a" ;;
+      *.gz)                 gunzip "$a" ;;
+      *.bz2)                bunzip2 "$a" ;;
+      *.xz)                 unxz "$a" ;;
+      *.zst)                unzstd "$a" ;;
+      *.zip)                unzip "$a" ;;
+      *.rar)                unrar x "$a" ;;
+      *.7z)                 7z x "$a" ;;
+      *.Z)                  uncompress "$a" ;;
+      *)                    echo "$a: cannot extract" ;;
+    esac
+  done
+}
+
+# Allow script to be safely sourced
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+	extract "$@"
+	exit
+fi

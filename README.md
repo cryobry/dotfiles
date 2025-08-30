@@ -2,6 +2,12 @@
 
 Deploy configurations using [GNU Stow](https://www.gnu.org/software/stow/manual/stow.html) packages.
 
+* Interactive deploy script
+
+```bash
+./deploy [HOSTNAME]
+```
+
 * Deploy all common configs
 
 ```bash
@@ -38,10 +44,4 @@ stow -d common/home -R --adopt -t "$HOME" $(ls common/home)
 stow -d "$HOSTNAME/home" -R --adopt -t "$HOME" $(ls "$HOSTNAME/home")
 sudo stow -d common/root -R --adopt -t / $(ls common/root)
 sudo stow -d $HOSTNAME/root -R --adopt -t / $(ls "$HOSTNAME/root")
-```
-
-* Interactive deploy using helper script
-
-```bash
-./deploy [HOSTNAME (Optional)]
 ```
