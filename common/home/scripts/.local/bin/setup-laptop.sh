@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Primarily for Fedora, may translate
 
-# Firefox
+# Firefox about:config
 # mousewheel.acceleration.factor 20
 # mousewheel.acceleration.start 2
 # gfx.webrender.all true
@@ -22,7 +22,9 @@ sudo dnf install -y \
        vim htop remmina calibre pinta toolbox code gnome-tweaks \
        wl-clipboard syncthing profile-sync-daemon \
        python3-virtualenv python3-virtualenvwrapper nautilus-python gettext \
-       setroubleshoot cargo flatpak snap
+       setroubleshoot cargo flatpak snap tailscale
+
+cargo install aichat
         
 # Use zsh as default shell
 chsh -s "$(which zsh)"
@@ -41,12 +43,6 @@ sudo btrfs sub create ~/media/ebooks
 sudo btrfs sub create ~/media/movies
 sudo btrfs sub create ~/media/podcasts
 
-# Create links
-ln -s ~/media/music ~/music
-ln -s ~/documents/develop ~/develop
-ln -s ~/.local/bin ~/bin
-ln -s ~/devices/phone/podcasts ~/media/podcasts
-
 # Allow some commands to invoke sudo without a password
 echo "bryan ALL=(ALL) NOPASSWD: /usr/bin/psd-overlay-helper, /usr/sbin/btrfs, /usr/bin/journalctl, /usr/bin/dnf, /usr/bin/fwupdmgr, /usr/bin/dmesg" | sudo tee -a /etc/sudoers > /dev/null
 
@@ -60,8 +56,8 @@ kgx --set-scrollback 100000000
 echo "fs.inotify.max_user_watches=524288" | sudo tee /etc/sysctl.d/local.conf > /dev/null
 sudo systemctl restart systemd-sysctl.service
 
-# Install clone dirs
+# Deploy personal repos
 git -C ~/.local/bin clone https://git.bryanroessler.com/bryan/installJRMC.git -b dev
 git -C ~/.local/bin clone https://git.bryanroessler.com/bryan/openwrtbuilder.git -b dev
-
-cargo install aichat
+git -C ~/.local/bin clone https://git.bryanroessler.com/bryan/deployer.git -b dev
+git -C ~/.local/bin clone https://git.bryanroessler.com/bryan/dotfiles.git -b dev
