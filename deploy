@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 # Interactively deploy GNU Stow packages
 # Takes one optional argument, the HOSTNAME
+# Add custom package groups to the STOW_MAP array below
 
-# Determine the hostname to use for packages dir
-HOSTNAME=${1:-${HOSTNAME:-$(hostname)}}
+# Determine the hostname to use for packages directory alias
+ALIAS=${1:-${HOSTNAME:-$(hostname)}}
 
 # Get script dir for relative stow paths
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
@@ -16,8 +17,8 @@ declare -g YES=0
 declare -A STOW_MAP=(
   ["$SCRIPT_DIR/common/home"]="$HOME"
   ["$SCRIPT_DIR/common/root"]="/"
-  ["$SCRIPT_DIR/$HOSTNAME/home"]="$HOME"
-  ["$SCRIPT_DIR/$HOSTNAME/root"]="/"
+  ["$SCRIPT_DIR/$ALIAS/home"]="$HOME"
+  ["$SCRIPT_DIR/$ALIAS/root"]="/"
 )
 
 for stowdir in "${!STOW_MAP[@]}"; do
@@ -48,15 +49,15 @@ for stowdir in "${!STOW_MAP[@]}"; do
           if [[ -L $full_path ]] &&
             target_link=$(readlink "$full_path") &&
             [[ -e $target_link ]]; then
-              echo "$conflict_file is a valid symlink."
+              echo "$conflict_file is an existing valid symlink."
               ((YES)) || read -rp "Skip package [s|<Enter>] or overwrite file [o]: " choice
               if [[ -z $choice || ${choice,,} == "s" ]]; then
                 echo "Skipping package $pkg_name."
                 continue 2
               fi
           elif [[ -f "$full_path" ]]; then
-            echo "$conflict_file is a regular file."
-            ((YES)) || read -rp "Skip package [s|<Enter>], adopt [a], or overwrite [o]: " choice
+            echo "$conflict_file is an existing file."
+            ((YES)) || read -rp "Skip package [s|<Enter>], adopt file [a], or overwrite file [o]: " choice
             if [[ -z $choice || ${choice,,} == "s" ]]; then
               echo "Skipping package $pkg_name."
               continue 2
@@ -67,6 +68,7 @@ for stowdir in "${!STOW_MAP[@]}"; do
             fi
           fi
 
+          # Remove broken symlinks and conflicting files
           [[ -z $choice || ${choice,,} == "o" ]] && $SUDO rm -f "$full_path"
         done <<< "$conflicts"
       fi
@@ -75,5 +77,6 @@ for stowdir in "${!STOW_MAP[@]}"; do
     # Stow the package      
     echo "$SUDO stow --dir $stowdir --dotfiles $ADOPT --restow --target $target $pkg_name"
     $SUDO stow --dir "$stowdir" --dotfiles $ADOPT --restow --target "$target" "$pkg_name"
+    echo
   done
 done
