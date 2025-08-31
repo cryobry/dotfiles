@@ -1,13 +1,19 @@
 #!/usr/bin/env bash
 # Initial setup for Fedora Workstation
+# Use --yes for automatic mode
+
+# Make interactive by default
+declare -g YES=0
+
+# Assume yes if user passes --yes
+[[ " $1 " == " --yes " ]] && YES=1
 
 # Make interactive
 ask_ok() {
   ((YES)) && return
   local r
   read -r -p "$* [y/N]: " r
-  r=${r,,}
-  [[ "$r" =~ ^(yes|y)$ ]]
+  [[ ${r,,} =~ ^(yes|y)$ ]]
 }
 
 # Firefox about:config
@@ -32,7 +38,8 @@ if ask_ok "Add/remove packages?"; then
     vim htop remmina calibre pinta toolbox code gnome-tweaks \
     wl-clipboard syncthing profile-sync-daemon \
     python3-virtualenv python3-virtualenvwrapper nautilus-python gettext \
-    setroubleshoot cargo flatpak snap tailscale
+    setroubleshoot cargo flatpak snap tailscale \
+    dnf5-plugin-automatic
   cargo install aichat
 fi
 
@@ -42,10 +49,6 @@ fi
 
 if ask_ok "Enable profile-sync-daemon for the user?"; then
   systemctl --user enable --now psd
-fi
-
-if ask_ok "Enable automatic system updates?"; then
-  sudo systemctl enable --now dnf-automatic.timer
 fi
 
 if ask_ok "Make btrfs subvolumes?"; then
@@ -82,8 +85,10 @@ if ask_ok "Deploy personal repos?"; then
   git -C "$HOME/.local/bin" clone https://git.bryanroessler.com/bryan/dotfiles.git -b dev
 fi
 
+declare -g DEPLOY_ARGS=""
+((YES)) && DEPLOY_ARGS="--yes"
 if ask_ok "Run semi-interactive dotfiles deployment?"; then
-  "$HOME/.local/bin/dotfiles/deploy"
+  "$HOME/.local/bin/dotfiles/deploy" $DEPLOY_ARGS
 fi
 
 exit 0

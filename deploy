@@ -8,6 +8,10 @@ HOSTNAME=${1:-${HOSTNAME:-$(hostname)}}
 # Get script dir for relative stow paths
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 
+# Enable automatic mode if user passes --yes
+declare -g YES=0
+[[ " $1 " == " --yes " ]] && YES=1
+
 # Map of source packages and destinations
 declare -A STOW_MAP=(
   ["$SCRIPT_DIR/common/home"]="$HOME"
@@ -31,7 +35,11 @@ for stowdir in "${!STOW_MAP[@]}"; do
     
     if ! $SUDO stow -d "$stowdir" -R -t "$target" "$pkg_name"; then
       echo "Conflicts detected for package '$pkg_name':"
-      read -rp "Adopt [a], backup [b], overwrite [o], or skip [s|<Enter>] (default: skip): " choice
+      if ((YES)); then
+        choice="o"
+      else
+        read -rp "Adopt [a], backup [b], overwrite [o], or skip [s|<Enter>] (default: skip): " choice
+      fi
       case "${choice,,}" in
         a) $SUDO stow -d "$stowdir" -R --adopt -t "$target" "$pkg_name"; continue ;;
         b) 
