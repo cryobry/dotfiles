@@ -22,48 +22,58 @@ declare -A STOW_MAP=(
 
 for stowdir in "${!STOW_MAP[@]}"; do
   target="${STOW_MAP[$stowdir]}"
-  [[ -d "$stowdir" ]] || continue
+  [[ -d $stowdir ]] || continue
   SUDO=""
-  [[ "$target" == "/" ]] && SUDO="sudo"
-  echo "Deploying packages from $stowdir to $target"
+  [[ $target == "/" ]] && SUDO="sudo"
   
+  echo "Deploying packages from $stowdir to $target."
   for pkg in "$stowdir"/*; do
-    [[ -d "$pkg" ]] || continue
+    [[ -d $pkg ]] || continue
     pkg_name=$(basename "$pkg")
-    echo -e "$pkg_name\n${pkg_name//?/-}"
-    tree -a "$pkg"
     
-    if ! $SUDO stow -d "$stowdir" -R -t "$target" "$pkg_name"; then
-      echo "Conflicts detected for package '$pkg_name':"
-      if ((YES)); then
-        choice="o"
-      else
-        read -rp "Adopt [a], backup [b], overwrite [o], or skip [s|<Enter>] (default: skip): " choice
-      fi
-      case "${choice,,}" in
-        a) $SUDO stow -d "$stowdir" -R --adopt -t "$target" "$pkg_name"; continue ;;
-        b) 
-          backup_dir="$target/.stow-backups/$(date +%Y%m%d_%H%M%S)"
-          $SUDO mkdir -p "$backup_dir"
-          while IFS= read -r -d '' file; do
-            relpath="${file#"$pkg"/}"
-            dest="$target/$relpath"
-            if [[ -e "$dest" ]]; then
-              $SUDO mkdir -p "$backup_dir/$(dirname "$relpath")"
-              $SUDO mv "$dest" "$backup_dir/$relpath"
+    echo -e "$pkg_name\n${pkg_name//?/-}"
+    
+    ADOPT=""
+    # Try simulation to detect conflicts
+    if ! sim_output=$($SUDO stow --dir "$stowdir" --simulate --dotfiles --restow --target "$target" "$pkg_name" 2>&1); then
+      echo "Simulated stow failed for '$pkg_name' package."
+      # Extract conflicting files from stow output
+      if conflicts=$(echo "$sim_output" | grep '^\s*\*' | sed -E 's/.*: (.+)$/\1/'); then
+        echo "Conflicting files detected."
+
+        while IFS= read -r conflict_file; do
+          full_path="$target/$conflict_file"
+          unset choice
+          
+          if [[ -L $full_path ]] &&
+            target_link=$(readlink "$full_path") &&
+            [[ -e $target_link ]]; then
+              echo "$conflict_file is a valid symlink."
+              ((YES)) || read -rp "Skip package [s|<Enter>] or overwrite file [o]: " choice
+              if [[ -z $choice || ${choice,,} == "s" ]]; then
+                echo "Skipping package $pkg_name."
+                continue 2
+              fi
+          elif [[ -f "$full_path" ]]; then
+            echo "$conflict_file is a regular file."
+            ((YES)) || read -rp "Skip package [s|<Enter>], adopt [a], or overwrite [o]: " choice
+            if [[ -z $choice || ${choice,,} == "s" ]]; then
+              echo "Skipping package $pkg_name."
+              continue 2
             fi
-          done < <(find "$pkg" -type f -print0)
-          ;;
-        o)
-          while IFS= read -r -d '' file; do
-            relpath="${file#"$pkg"/}"
-            dest="$target/$relpath"
-            [[ -e "$dest" ]] && $SUDO rm -f "$dest"
-          done < <(find "$pkg" -type f -print0)
-          ;;
-        *) echo "Skipping $pkg_name"; continue ;;
-      esac
-      $SUDO stow -d "$stowdir" -R -t "$target" "$pkg_name"
+            if [[ ${choice,,} == "a" ]]; then
+              echo "Using --adopt."
+              ADOPT="--adopt"
+            fi
+          fi
+
+          [[ -z $choice || ${choice,,} == "o" ]] && $SUDO rm -f "$full_path"
+        done <<< "$conflicts"
+      fi
     fi
+
+    # Stow the package      
+    echo "$SUDO stow --dir $stowdir --dotfiles $ADOPT --restow --target $target $pkg_name"
+    $SUDO stow --dir "$stowdir" --dotfiles $ADOPT --restow --target "$target" "$pkg_name"
   done
 done
