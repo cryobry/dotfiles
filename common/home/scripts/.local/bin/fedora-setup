@@ -43,6 +43,10 @@ if ask_ok "Add/remove packages?"; then
   cargo install aichat
 fi
 
+if ask_ok "Automatically download dnf updates?"; then
+  sudo systemctl enable --now dnf-automatic.timer
+fi
+
 if ask_ok "Use zsh as default shell?"; then
   chsh -s "$(which zsh)"
 fi
